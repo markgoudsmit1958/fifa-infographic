@@ -1,2 +1,364 @@
-# fifa-infographic
-Infographic FIFA Influence Monitor 2025
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FIFA Influence monitor 2025</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,Helvetica,sans-serif;color:#111;background:#fff}
+#app{padding:16px;max-width:960px;margin:0 auto}
+.title-bar{display:flex;align-items:baseline;gap:10px;margin-bottom:14px;border-bottom:1px solid #ddd;padding-bottom:10px}
+.title-bar h1{font-size:18px;font-weight:500;color:#111}
+.title-bar .sub{font-size:12px;color:#555}
+.tabs{display:flex;gap:4px;margin-bottom:14px;flex-wrap:wrap}
+.tab{padding:7px 15px;font-size:12px;border:1px solid #aaa;border-radius:6px;cursor:pointer;background:#fff;color:#555;font-weight:400;transition:background .12s}
+.tab:hover{background:#f0f0f0}
+.tab.active{background:#111;color:#fff;border-color:#111}
+.panel{display:none}.panel.active{display:block}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:16px}
+.metric{background:#f5f5f5;border-radius:8px;padding:10px 12px}
+.metric .lbl{font-size:11px;color:#555;margin-bottom:3px}
+.metric .val{font-size:20px;font-weight:500;color:#111}
+.metric .sub2{font-size:10px;color:#888;margin-top:2px}
+.chart-wrap{position:relative;margin-bottom:18px}
+.leg{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px;font-size:11px;color:#555}
+.leg-item{display:flex;align-items:center;gap:4px}
+.dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.sq{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.tip{position:fixed;background:#fff;border:1px solid #999;border-radius:6px;padding:8px 10px;font-size:11px;pointer-events:none;z-index:9999;display:none;max-width:210px;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.tip strong{font-size:12px;display:block;margin-bottom:3px;color:#111}
+.sec{font-size:13px;font-weight:500;color:#111;margin-bottom:8px;margin-top:16px}
+table{width:100%;font-size:11px;border-collapse:collapse;table-layout:fixed}
+th{text-align:left;font-weight:500;color:#555;padding:5px 6px;border-bottom:1px solid #ddd}
+td{padding:5px 6px;border-bottom:1px solid #eee;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+tr:hover td{background:#f8f8f8}
+.badge{display:inline-block;padding:1px 6px;border-radius:10px;font-size:10px;font-weight:500}
+.b-oil{background:#FEF3C7;color:#92400E}
+.b-isl{background:#DBEAFE;color:#1E40AF}
+.b-std{background:#f0f0f0;color:#555}
+select,input[type=text]{font-size:12px;padding:5px 8px;border:1px solid #aaa;border-radius:6px;background:#fff;color:#111}
+.controls{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center}
+.controls label{font-size:12px;color:#555}
+#map-search{width:220px;margin-bottom:10px;font-size:13px;padding:6px 10px}
+.map-result{background:#f8f8f8;border:1px solid #ddd;border-radius:8px;padding:12px 14px;font-size:12px;margin-bottom:12px;display:none}
+.map-result .cn{font-size:16px;font-weight:500;margin-bottom:8px;color:#111}
+.map-result .row{display:flex;gap:16px;flex-wrap:wrap}
+.map-result .item{flex:1;min-width:80px}
+.map-result .item .k{color:#555;font-size:11px}
+.map-result .item .v{font-size:14px;font-weight:500;color:#111}
+.notes-wrap{font-size:13px;line-height:1.75;color:#333}
+.notes-wrap h3{font-size:15px;font-weight:500;margin-top:20px;margin-bottom:6px;color:#111}
+.notes-wrap h3:first-child{margin-top:0}
+.notes-wrap p{margin-bottom:10px;color:#444}
+.notes-wrap ul{margin-left:20px;margin-bottom:10px;color:#444}
+.notes-wrap li{margin-bottom:4px}
+.notes-wrap .hl{color:#111;font-weight:500}
+@media(max-width:600px){.metrics{grid-template-columns:repeat(2,1fr)}.tab{font-size:11px;padding:5px 10px}}
+</style>
+</head>
+<body>
+<div id="app">
+<div class="title-bar">
+  <h1> FIFA Influence monitor 2025 Infographic</h1>
+  <span class="sub">193 member associations &mdash; players, influence, islands &amp; oil states</span>
+</div>
+<div class="tabs" id="tab-bar">
+  <div class="tab active" data-panel="map">Players per 1,000 population</div>
+  <div class="tab" data-panel="overview">Overview</div>
+  <div class="tab" data-panel="scatter">Players vs. Influence</div>
+  <div class="tab" data-panel="islands">Island States</div>
+  <div class="tab" data-panel="oil">Oil States &amp; World Cups</div>
+  <div class="tab" data-panel="table">All Countries</div>
+  <div class="tab" data-panel="notes">Notes</div>
+</div>
+<div class="tip" id="tip"></div>
+
+<!-- WORLD MAP -->
+<div id="panel-map" class="panel active">
+  <input type="text" id="map-search" placeholder="Search country name..." oninput="mapSearch()">
+  <div class="map-result" id="map-result"></div>
+  <div class="leg">
+    <span class="leg-item"><span class="sq" style="background:#0C447C"></span>Very high (&gt;10 / 1,000)</span>
+    <span class="leg-item"><span class="sq" style="background:#378ADD"></span>High (5&ndash;10)</span>
+    <span class="leg-item"><span class="sq" style="background:#85B7EB"></span>Medium (2&ndash;5)</span>
+    <span class="leg-item"><span class="sq" style="background:#B5D4F4"></span>Low (0.5&ndash;2)</span>
+    <span class="leg-item"><span class="sq" style="background:#E6F1FB;border:1px solid #ccc"></span>Very low (&lt;0.5)</span>
+    <span class="leg-item"><span class="dot" style="background:#EF4444"></span>Oil state</span>
+    <span class="leg-item"><span class="dot" style="background:#F59E0B"></span>Island state</span>
+  </div>
+  <div id="map-container" style="width:100%;min-height:360px"></div>
+</div>
+
+<!-- OVERVIEW -->
+<div id="panel-overview" class="panel">
+  <div class="metrics" id="m-top"></div>
+  <div class="sec">Registered players by confederation</div>
+  <div class="leg" id="leg-conf"></div>
+  <div class="chart-wrap" style="height:200px"><canvas id="ch-conf" role="img" aria-label="Bar chart of registered players by confederation">Players by confederation</canvas></div>
+  <div class="sec">Top 25 countries by influence score</div>
+  <div class="chart-wrap" style="height:240px"><canvas id="ch-inf" role="img" aria-label="Horizontal bar chart top 25 countries by influence score">Influence scores</canvas></div>
+</div>
+
+<!-- SCATTER -->
+<div id="panel-scatter" class="panel">
+  <div class="controls">
+    <label>X-axis:</label>
+    <select id="xaxis" onchange="drawScatter()">
+      <option value="p">Registered players</option>
+      <option value="pop">Population</option>
+      <option value="r">Players per 1,000 population</option>
+    </select>
+    <label style="margin-left:8px">Filter:</label>
+    <select id="scf" onchange="drawScatter()">
+      <option value="all">All countries</option>
+      <option value="oil">Oil states</option>
+      <option value="island">Island states</option>
+      <option value="high">High influence (score &ge;5)</option>
+    </select>
+  </div>
+  <div class="leg">
+    <span class="leg-item"><span class="dot" style="background:#EF4444"></span>Oil state</span>
+    <span class="leg-item"><span class="dot" style="background:#3B82F6"></span>Island state</span>
+    <span class="leg-item"><span class="dot" style="background:#10B981"></span>High influence (&ge;5)</span>
+    <span class="leg-item"><span class="dot" style="background:#D1D5DB"></span>Other</span>
+  </div>
+  <div class="chart-wrap" style="height:360px"><canvas id="ch-sc" role="img" aria-label="Scatter plot registered players versus influence score"></canvas></div>
+</div>
+
+<!-- ISLANDS -->
+<div id="panel-islands" class="panel">
+  <div class="metrics" id="m-isl"></div>
+  <div class="sec">Island states: players vs. influence (bubble size = population)</div>
+  <div class="chart-wrap" style="height:300px"><canvas id="ch-isl" role="img" aria-label="Bubble chart island states">Island states</canvas></div>
+  <div class="sec">Island states by confederation</div>
+  <div class="chart-wrap" style="height:180px"><canvas id="ch-isl-conf" role="img" aria-label="Doughnut chart island states by confederation">By confederation</canvas></div>
+</div>
+
+<!-- OIL -->
+<div id="panel-oil" class="panel">
+  <div class="metrics" id="m-oil"></div>
+  <div class="sec">World Cup hosting 1930&ndash;2034</div>
+  <div style="overflow-x:auto;padding-bottom:8px"><div id="wc-tl" style="display:flex;gap:0;min-width:580px"></div></div>
+  <div class="leg" style="margin-top:8px">
+    <span class="leg-item"><span class="sq" style="background:#10B981"></span>Traditional football nation</span>
+    <span class="leg-item"><span class="sq" style="background:#EF4444"></span>Oil / petro state</span>
+    <span class="leg-item"><span class="sq" style="background:#F59E0B"></span>North America</span>
+    <span class="leg-item"><span class="sq" style="background:#8B5CF6"></span>Emerging / other</span>
+    <span class="leg-item"><span class="sq" style="background:#fff;border:1.5px dashed #888"></span>Future host</span>
+  </div>
+  <div class="sec">Oil states: influence vs. players per 1,000 population</div>
+  <div class="chart-wrap" style="height:260px"><canvas id="ch-oil" role="img" aria-label="Bar chart oil states influence and players per 1000">Oil states analysis</canvas></div>
+</div>
+
+<!-- TABLE -->
+<div id="panel-table" class="panel">
+  <div class="controls">
+    <input type="text" id="tsearch" placeholder="Search country..." oninput="renderTable()" style="width:180px">
+    <select id="tcf" onchange="renderTable()">
+      <option value="">All confederations</option>
+      <option>UEFA</option><option>AFC</option><option>CAF</option>
+      <option>CONCACAF</option><option>CONMEBOL</option><option>OFC</option>
+    </select>
+    <select id="ttf" onchange="renderTable()">
+      <option value="">All types</option>
+      <option value="oil">Oil states</option>
+      <option value="island">Island states</option>
+      <option value="high">High influence (&ge;5)</option>
+    </select>
+  </div>
+  <table>
+    <colgroup><col style="width:24%"><col style="width:12%"><col style="width:14%"><col style="width:13%"><col style="width:11%"><col style="width:26%"></colgroup>
+    <thead><tr>
+      <th onclick="srt('c')" style="cursor:pointer">Country &#8597;</th>
+      <th>Conf.</th>
+      <th onclick="srt('p')" style="cursor:pointer">Players &#8597;</th>
+      <th onclick="srt('r')" style="cursor:pointer">Per 1,000 &#8597;</th>
+      <th onclick="srt('inf')" style="cursor:pointer">Influence &#8597;</th>
+      <th>Type</th>
+    </tr></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+  <div id="tcount" style="font-size:11px;color:#888;margin-top:6px"></div>
+</div>
+
+<!-- NOTES -->
+<div id="panel-notes" class="panel">
+  <div class="notes-wrap">
+    <h3>About this dashboard</h3>
+    <p>This dashboard visualises the distribution of power within FIFA across its 193 member associations. It combines three dimensions: the footballing footprint of each country (registered players), its formal decision-making weight (influence score), and its geopolitical character (oil state or island state).</p>
+
+    <h3>World map panel</h3>
+    <p>The choropleth map colours each country by <span class="hl">registered players per 1,000 population</span> using a five-tier blue scale. Red dots mark oil states; amber dots mark island states. Hover over any country for a tooltip. Use the search bar to locate any country and display its exact player count, influence score, confederation and classification.</p>
+
+    <h3>Overview panel</h3>
+    <p>The bar chart shows total registered players per confederation. <span class="hl">UEFA and AFC together account for more than 70% of all registered players globally</span>, with UEFA alone registering over 32 million. The horizontal bar chart ranks the top 25 countries by influence score. Switzerland (score 151) sits alone at the top due to FIFA&rsquo;s headquarters location and the nationality of the current president; Sweden (44) and Italy (39) follow.</p>
+
+    <h3>Players vs. influence panel</h3>
+    <p>The scatter plot exposes the central paradox of FIFA governance: <span class="hl">influence scores are largely decoupled from player bases</span>. Bahrain (score 31, 3,796 registered players) outranks Brazil (score 5, 2.5 million players). Paraguay (score 26, 130,000 players) outranks China (score 1, 26 million players). The X-axis can be toggled between absolute player count, total population, and players per 1,000 population.</p>
+
+    <h3>Island states panel</h3>
+    <p>The 21 island states identified in this dataset hold <span class="hl">disproportionate influence relative to their footballing weight</span>. Vanuatu (population 327,000) holds an influence score of 21. American Samoa (population 55,197) holds a score of 6. Each of the 211 FIFA member associations casts one equal vote in Congress, making small island states structurally valuable in presidential elections and statutory votes. The FIFA Forward programme distributes near-equal operational grants to all 211 associations, creating financial dependency regardless of association size.</p>
+
+    <h3>Oil states and World Cup panel</h3>
+    <p>The timeline shows all 25 World Cups from Uruguay 1930 to Saudi Arabia 2034. The shift from traditional football nations to oil and petro states as hosts is visible from 2018 onwards: Russia (2018), Qatar (2022), and Saudi Arabia (2034). The United States &mdash; itself a significant oil producer &mdash; co-hosts in 2026 and hosted in 1994. The bar chart shows that oil states often combine high influence scores with <span class="hl">low player penetration rates</span>, most strikingly in Bahrain (score 31, 0.26 per 1,000) and Qatar (score 9, 0.92 per 1,000).</p>
+
+    <h3>Influence score methodology</h3>
+    <p>The influence score is derived from the source dataset (Moedersheet_FIFA.xlsx) and reflects structural power within the FIFA governance architecture. A baseline score of 1 applies to all ordinary FIFA Congress members. Higher scores reflect additional positions held: FIFA Council membership, confederation presidency, Bureau of the Council membership, committee chairmanships, and the FIFA presidency itself (score 151 for Switzerland, reflecting Infantino). The score does not capture informal influence, patronage networks, or voting bloc coordination.</p>
+
+    <h3>Data sources</h3>
+    <ul>
+      <li>Registered players: Moedersheet_FIFA.xlsx; FIFA Big Count 2006 for countries without recent data</li>
+      <li>Population: United Nations 2024 estimates</li>
+      <li>Influence scores: Moedersheet_FIFA.xlsx</li>
+      <li>Oil state classification: OPEC members plus major non-OPEC producers (Russia, Norway, USA, Kazakhstan, Azerbaijan)</li>
+      <li>Island state classification: geographically island-based FIFA member associations</li>
+      <li>World Cup hosting: FIFA official records; 2026, 2030 and 2034 confirmed by FIFA Congress</li>
+    </ul>
+
+ </div>
+</div>
+</div><!-- end #app -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const D=[{c:"Afghanistan",iso:"AFG",n4:4,conf:"AFC",p:526781,pop:43533592,r:1.21,inf:1,oil:false,island:false},{c:"Albania",iso:"ALB",n4:8,conf:"UEFA",p:35000,pop:2754330,r:1.271,inf:1,oil:false,island:false},{c:"Algeria",iso:"DZA",n4:12,conf:"CAF",p:1500000,pop:46814308,r:3.204,inf:1,oil:true,island:false},{c:"American Samoa",iso:"ASM",n4:16,conf:"OFC",p:4310,pop:55197,r:7.808,inf:6,oil:false,island:true},{c:"Andorra",iso:"AND",n4:20,conf:"UEFA",p:3000,pop:79824,r:3.758,inf:1,oil:false,island:false},{c:"Angola",iso:"AGO",n4:24,conf:"CAF",p:200000,pop:37202061,r:0.538,inf:1,oil:true,island:false},{c:"Antigua and Barbuda",iso:"ATG",n4:28,conf:"CONCACAF",p:2200,pop:93219,r:2.36,inf:1,oil:false,island:false},{c:"Argentina",iso:"ARG",n4:32,conf:"CONMEBOL",p:1800000,pop:45773884,r:3.932,inf:13,oil:false,island:false},{c:"Armenia",iso:"ARM",n4:51,conf:"UEFA",p:25000,pop:2974300,r:0.841,inf:1,oil:false,island:false},{c:"Australia",iso:"AUS",n4:36,conf:"AFC",p:1700000,pop:26439111,r:6.43,inf:1,oil:false,island:false},{c:"Austria",iso:"AUT",n4:40,conf:"UEFA",p:630000,pop:9104772,r:6.919,inf:1,oil:false,island:false},{c:"Azerbaijan",iso:"AZE",n4:31,conf:"UEFA",p:45000,pop:10137700,r:0.444,inf:1,oil:true,island:false},{c:"Bahamas",iso:"BHS",n4:44,conf:"CONCACAF",p:17944,pop:412623,r:4.349,inf:1,oil:false,island:true},{c:"Bahrain",iso:"BHR",n4:48,conf:"AFC",p:3796,pop:1485509,r:0.256,inf:31,oil:true,island:false},{c:"Bangladesh",iso:"BGD",n4:50,conf:"AFC",p:200000,pop:172954319,r:0.116,inf:1,oil:false,island:false},{c:"Barbados",iso:"BRB",n4:52,conf:"CONCACAF",p:15840,pop:287711,r:5.506,inf:6,oil:false,island:true},{c:"Belarus",iso:"BLR",n4:112,conf:"UEFA",p:55000,pop:9200617,r:0.598,inf:1,oil:false,island:false},{c:"Belgium",iso:"BEL",n4:56,conf:"UEFA",p:500000,pop:11590000,r:4.314,inf:7,oil:false,island:false},{c:"Belize",iso:"BLZ",n4:84,conf:"CONCACAF",p:9000,pop:400031,r:2.25,inf:1,oil:false,island:true},{c:"Benin",iso:"BEN",n4:204,conf:"CAF",p:7800,pop:13712828,r:0.057,inf:1,oil:false,island:false},{c:"Bhutan",iso:"BTN",n4:64,conf:"AFC",p:1200,pop:787424,r:0.152,inf:1,oil:false,island:false},{c:"Bolivia",iso:"BOL",n4:68,conf:"CONMEBOL",p:80000,pop:12311974,r:0.65,inf:1,oil:false,island:false},{c:"Bosnia and Herzegovina",iso:"BIH",n4:70,conf:"UEFA",p:50000,pop:3210847,r:1.557,inf:1,oil:false,island:false},{c:"Botswana",iso:"BWA",n4:72,conf:"CAF",p:60000,pop:2756000,r:2.177,inf:1,oil:false,island:false},{c:"Brazil",iso:"BRA",n4:76,conf:"CONMEBOL",p:2500000,pop:215313498,r:1.161,inf:5,oil:false,island:false},{c:"Brunei",iso:"BRN",n4:96,conf:"AFC",p:1400,pop:449002,r:0.312,inf:1,oil:false,island:false},{c:"Bulgaria",iso:"BGR",n4:100,conf:"UEFA",p:70000,pop:6447710,r:1.086,inf:1,oil:false,island:false},{c:"Burkina Faso",iso:"BFA",n4:854,conf:"CAF",p:23200,pop:23548000,r:0.099,inf:1,oil:false,island:false},{c:"Burundi",iso:"BDI",n4:108,conf:"CAF",p:11904,pop:13238000,r:0.09,inf:1,oil:false,island:false},{c:"Cambodia",iso:"KHM",n4:116,conf:"AFC",p:45000,pop:17423835,r:0.258,inf:1,oil:false,island:false},{c:"Cameroon",iso:"CMR",n4:120,conf:"CAF",p:21625,pop:28647293,r:0.075,inf:1,oil:false,island:false},{c:"Canada",iso:"CAN",n4:124,conf:"CONCACAF",p:965000,pop:38781291,r:2.488,inf:26,oil:false,island:false},{c:"Cape Verde",iso:"CPV",n4:132,conf:"CAF",p:11500,pop:596707,r:1.927,inf:1,oil:false,island:false},{c:"Chad",iso:"TCD",n4:148,conf:"CAF",p:5750,pop:18278568,r:0.031,inf:1,oil:false,island:false},{c:"Chile",iso:"CHL",n4:152,conf:"CONMEBOL",p:250000,pop:19629590,r:1.274,inf:1,oil:false,island:false},{c:"China",iso:"CHN",n4:156,conf:"AFC",p:26000000,pop:1416043270,r:1.836,inf:1,oil:false,island:false},{c:"Colombia",iso:"COL",n4:170,conf:"CONMEBOL",p:500000,pop:52085168,r:0.96,inf:27,oil:false,island:false},{c:"Comoros",iso:"COM",n4:174,conf:"CAF",p:1100,pop:888000,r:0.124,inf:6,oil:false,island:true},{c:"Congo",iso:"COG",n4:178,conf:"CAF",p:9060,pop:6145000,r:0.147,inf:1,oil:true,island:false},{c:"Costa Rica",iso:"CRI",n4:188,conf:"CONCACAF",p:65000,pop:5213374,r:1.247,inf:6,oil:false,island:false},{c:"Cote d'Ivoire",iso:"CIV",n4:384,conf:"CAF",p:23200,pop:27478249,r:0.084,inf:1,oil:false,island:false},{c:"Croatia",iso:"HRV",n4:191,conf:"UEFA",p:120000,pop:3855960,r:3.112,inf:1,oil:false,island:false},{c:"Cuba",iso:"CUB",n4:192,conf:"CONCACAF",p:40125,pop:11089511,r:0.362,inf:1,oil:false,island:false},{c:"Cyprus",iso:"CYP",n4:196,conf:"UEFA",p:30000,pop:1260138,r:2.381,inf:6,oil:false,island:false},{c:"Czechia",iso:"CZE",n4:203,conf:"UEFA",p:340000,pop:10875000,r:3.126,inf:1,oil:false,island:false},{c:"Democratic Republic of Congo",iso:"COD",n4:180,conf:"CAF",p:77600,pop:105044646,r:0.074,inf:1,oil:false,island:false},{c:"Denmark",iso:"DNK",n4:208,conf:"UEFA",p:330000,pop:5928090,r:5.567,inf:1,oil:false,island:false},{c:"Djibouti",iso:"DJI",n4:262,conf:"CAF",p:2520,pop:1136455,r:0.222,inf:6,oil:false,island:false},{c:"Dominican Republic",iso:"DOM",n4:214,conf:"CONCACAF",p:47000,pop:11117873,r:0.423,inf:1,oil:false,island:false},{c:"East Timor",iso:"TLS",n4:626,conf:"AFC",p:500,pop:1360596,r:0.037,inf:1,oil:false,island:true},{c:"Ecuador",iso:"ECU",n4:218,conf:"CONMEBOL",p:180000,pop:18001000,r:1.0,inf:7,oil:false,island:false},{c:"Egypt",iso:"EGY",n4:818,conf:"CAF",p:1100000,pop:105914499,r:1.039,inf:9,oil:false,island:false},{c:"El Salvador",iso:"SLV",n4:222,conf:"CONCACAF",p:60000,pop:6336392,r:0.947,inf:1,oil:false,island:false},{c:"Equatorial Guinea",iso:"GNQ",n4:226,conf:"CAF",p:1690,pop:1674908,r:0.101,inf:1,oil:false,island:false},{c:"Eritrea",iso:"ERI",n4:232,conf:"CAF",p:28218,pop:3748901,r:0.753,inf:1,oil:false,island:false},{c:"Estonia",iso:"EST",n4:233,conf:"UEFA",p:35000,pop:1357739,r:2.578,inf:1,oil:false,island:false},{c:"Eswatini",iso:"SWZ",n4:748,conf:"CAF",p:5000,pop:1210822,r:0.413,inf:1,oil:false,island:false},{c:"Ethiopia",iso:"ETH",n4:231,conf:"CAF",p:800000,pop:126527060,r:0.632,inf:1,oil:false,island:false},{c:"Fiji",iso:"FJI",n4:242,conf:"OFC",p:25000,pop:930000,r:2.688,inf:6,oil:false,island:true},{c:"Finland",iso:"FIN",n4:246,conf:"UEFA",p:130000,pop:5545000,r:2.344,inf:1,oil:false,island:false},{c:"France",iso:"FRA",n4:250,conf:"UEFA",p:2100000,pop:68170228,r:3.081,inf:1,oil:false,island:false},{c:"Gabon",iso:"GAB",n4:266,conf:"CAF",p:8300,pop:2388992,r:0.347,inf:1,oil:true,island:false},{c:"Gambia",iso:"GMB",n4:270,conf:"CAF",p:4530,pop:2706000,r:0.167,inf:1,oil:false,island:false},{c:"Georgia",iso:"GEO",n4:268,conf:"UEFA",p:40000,pop:3688647,r:1.084,inf:1,oil:false,island:false},{c:"Germany",iso:"DEU",n4:276,conf:"UEFA",p:7700000,pop:84607016,r:9.101,inf:9,oil:false,island:false},{c:"Ghana",iso:"GHA",n4:288,conf:"CAF",p:700000,pop:33906000,r:2.065,inf:6,oil:false,island:false},{c:"Greece",iso:"GRC",n4:300,conf:"UEFA",p:190000,pop:10341000,r:1.837,inf:1,oil:false,island:false},{c:"Grenada",iso:"GRD",n4:308,conf:"CONCACAF",p:1652,pop:113475,r:1.456,inf:1,oil:false,island:true},{c:"Guatemala",iso:"GTM",n4:320,conf:"CONCACAF",p:55000,pop:17843908,r:0.308,inf:1,oil:false,island:false},{c:"Guinea",iso:"GIN",n4:324,conf:"CAF",p:18100,pop:13859341,r:0.131,inf:1,oil:false,island:false},{c:"Guinea-Bissau",iso:"GNB",n4:624,conf:"CAF",p:2400,pop:2105566,r:0.114,inf:1,oil:false,island:false},{c:"Guyana",iso:"GUY",n4:328,conf:"CONCACAF",p:7940,pop:813834,r:0.976,inf:1,oil:false,island:false},{c:"Haiti",iso:"HTI",n4:332,conf:"CONCACAF",p:30000,pop:11724763,r:0.256,inf:1,oil:false,island:true},{c:"Honduras",iso:"HND",n4:340,conf:"CONCACAF",p:45000,pop:10432860,r:0.431,inf:1,oil:false,island:false},{c:"Hungary",iso:"HUN",n4:348,conf:"UEFA",p:140000,pop:9689010,r:1.445,inf:16,oil:false,island:false},{c:"Iceland",iso:"ISL",n4:352,conf:"UEFA",p:22000,pop:376248,r:5.847,inf:1,oil:false,island:false},{c:"India",iso:"IND",n4:356,conf:"AFC",p:1400000,pop:1441719852,r:0.097,inf:7,oil:false,island:false},{c:"Indonesia",iso:"IDN",n4:360,conf:"AFC",p:3600000,pop:277534122,r:1.297,inf:1,oil:false,island:false},{c:"Iran",iso:"IRN",n4:364,conf:"AFC",p:1200000,pop:89172767,r:1.346,inf:1,oil:true,island:false},{c:"Iraq",iso:"IRQ",n4:368,conf:"AFC",p:14500,pop:45504560,r:0.032,inf:1,oil:true,island:false},{c:"Ireland",iso:"IRL",n4:372,conf:"UEFA",p:260000,pop:5280000,r:4.924,inf:1,oil:false,island:false},{c:"Israel",iso:"ISR",n4:376,conf:"UEFA",p:100000,pop:9756700,r:1.025,inf:1,oil:false,island:false},{c:"Italy",iso:"ITA",n4:380,conf:"UEFA",p:1482000,pop:58761146,r:2.522,inf:39,oil:false,island:false},{c:"Jamaica",iso:"JAM",n4:388,conf:"CONCACAF",p:50000,pop:2820254,r:1.773,inf:1,oil:false,island:true},{c:"Japan",iso:"JPN",n4:392,conf:"AFC",p:1060000,pop:123294513,r:0.86,inf:9,oil:false,island:false},{c:"Jordan",iso:"JOR",n4:400,conf:"AFC",p:4821,pop:10271462,r:0.047,inf:1,oil:false,island:false},{c:"Kazakhstan",iso:"KAZ",n4:398,conf:"UEFA",p:75000,pop:19606633,r:0.383,inf:1,oil:true,island:false},{c:"Kenya",iso:"KEN",n4:404,conf:"CAF",p:75102,pop:56432944,r:0.133,inf:4,oil:false,island:false},{c:"Kuwait",iso:"KWT",n4:414,conf:"AFC",p:35000,pop:4934562,r:0.709,inf:1,oil:true,island:false},{c:"Laos",iso:"LAO",n4:418,conf:"AFC",p:2600,pop:7749595,r:0.034,inf:6,oil:false,island:false},{c:"Latvia",iso:"LVA",n4:428,conf:"UEFA",p:30000,pop:1830211,r:1.639,inf:1,oil:false,island:false},{c:"Lebanon",iso:"LBN",n4:422,conf:"AFC",p:18435,pop:5489539,r:0.336,inf:1,oil:false,island:false},{c:"Lesotho",iso:"LSO",n4:426,conf:"CAF",p:29500,pop:2281454,r:1.293,inf:1,oil:false,island:false},{c:"Liberia",iso:"LBR",n4:430,conf:"CAF",p:9267,pop:5418377,r:0.171,inf:1,oil:false,island:false},{c:"Libya",iso:"LBY",n4:434,conf:"CAF",p:8300,pop:6888388,r:0.12,inf:1,oil:true,island:false},{c:"Liechtenstein",iso:"LIE",n4:438,conf:"UEFA",p:2000,pop:38250,r:5.229,inf:1,oil:false,island:false},{c:"Lithuania",iso:"LTU",n4:440,conf:"UEFA",p:43000,pop:2718352,r:1.582,inf:1,oil:false,island:false},{c:"Luxembourg",iso:"LUX",n4:442,conf:"UEFA",p:27980,pop:672050,r:4.163,inf:1,oil:false,island:false},{c:"Madagascar",iso:"MDG",n4:450,conf:"CAF",p:30350,pop:28915653,r:0.105,inf:1,oil:false,island:false},{c:"Malawi",iso:"MWI",n4:454,conf:"CAF",p:33690,pop:20931751,r:0.161,inf:1,oil:false,island:false},{c:"Malaysia",iso:"MYS",n4:458,conf:"AFC",p:320000,pop:34564810,r:0.926,inf:7,oil:false,island:false},{c:"Maldives",iso:"MDV",n4:462,conf:"AFC",p:4866,pop:521021,r:0.934,inf:1,oil:false,island:true},{c:"Mali",iso:"MLI",n4:466,conf:"CAF",p:14175,pop:23293698,r:0.061,inf:1,oil:false,island:false},{c:"Malta",iso:"MLT",n4:470,conf:"UEFA",p:15000,pop:519562,r:2.887,inf:1,oil:false,island:true},{c:"Mauritania",iso:"MRT",n4:478,conf:"CAF",p:20100,pop:4736139,r:0.424,inf:6,oil:false,island:false},{c:"Mauritius",iso:"MUS",n4:480,conf:"CAF",p:200,pop:1261208,r:0.016,inf:1,oil:false,island:true},{c:"Mexico",iso:"MEX",n4:484,conf:"CONCACAF",p:1900000,pop:128455567,r:1.479,inf:1,oil:false,island:false},{c:"Moldova",iso:"MDA",n4:498,conf:"UEFA",p:20000,pop:2512758,r:0.796,inf:1,oil:false,island:false},{c:"Mongolia",iso:"MNG",n4:496,conf:"AFC",p:20000,pop:3447157,r:0.58,inf:1,oil:false,island:false},{c:"Montenegro",iso:"MNE",n4:499,conf:"UEFA",p:18000,pop:619211,r:2.907,inf:7,oil:false,island:false},{c:"Morocco",iso:"MAR",n4:504,conf:"CAF",p:500000,pop:37840044,r:1.321,inf:9,oil:false,island:false},{c:"Mozambique",iso:"MOZ",n4:508,conf:"CAF",p:150000,pop:33089461,r:0.453,inf:1,oil:false,island:false},{c:"Myanmar",iso:"MMR",n4:104,conf:"AFC",p:104395,pop:54578000,r:0.191,inf:1,oil:false,island:false},{c:"Namibia",iso:"NAM",n4:516,conf:"CAF",p:40260,pop:2604172,r:1.546,inf:1,oil:false,island:false},{c:"Nepal",iso:"NPL",n4:524,conf:"AFC",p:13500,pop:30896590,r:0.044,inf:1,oil:false,island:false},{c:"Netherlands",iso:"NLD",n4:528,conf:"UEFA",p:1200000,pop:17890760,r:6.707,inf:11,oil:false,island:false},{c:"New Zealand",iso:"NZL",n4:554,conf:"OFC",p:100657,pop:5123000,r:1.965,inf:7,oil:false,island:false},{c:"Nicaragua",iso:"NIC",n4:558,conf:"CONCACAF",p:25000,pop:6948392,r:0.36,inf:1,oil:false,island:false},{c:"Niger",iso:"NER",n4:562,conf:"CAF",p:7411,pop:26207977,r:0.028,inf:6,oil:false,island:false},{c:"Nigeria",iso:"NGA",n4:566,conf:"CAF",p:7000000,pop:223804632,r:3.128,inf:1,oil:true,island:false},{c:"North Korea",iso:"PRK",n4:408,conf:"AFC",p:7712,pop:26160821,r:0.029,inf:1,oil:false,island:false},{c:"North Macedonia",iso:"MKD",n4:807,conf:"UEFA",p:22646,pop:2070931,r:1.094,inf:1,oil:false,island:false},{c:"Norway",iso:"NOR",n4:578,conf:"UEFA",p:380000,pop:5488984,r:6.923,inf:1,oil:true,island:false},{c:"Oman",iso:"OMN",n4:512,conf:"AFC",p:30000,pop:4576298,r:0.656,inf:1,oil:true,island:false},{c:"Pakistan",iso:"PAK",n4:586,conf:"AFC",p:62700,pop:245209815,r:0.026,inf:1,oil:false,island:false},{c:"Palestine",iso:"PSE",n4:275,conf:"AFC",p:15000,pop:5483450,r:0.274,inf:1,oil:false,island:false},{c:"Panama",iso:"PAN",n4:591,conf:"CONCACAF",p:40000,pop:4351267,r:0.919,inf:1,oil:false,island:false},{c:"Papua New Guinea",iso:"PNG",n4:598,conf:"OFC",p:67100,pop:10329931,r:0.65,inf:1,oil:false,island:false},{c:"Paraguay",iso:"PRY",n4:600,conf:"CONMEBOL",p:130000,pop:6861524,r:1.895,inf:26,oil:false,island:false},{c:"Peru",iso:"PER",n4:604,conf:"CONMEBOL",p:200000,pop:33726168,r:0.593,inf:1,oil:false,island:false},{c:"Philippines",iso:"PHL",n4:608,conf:"AFC",p:500000,pop:117337368,r:0.426,inf:7,oil:false,island:false},{c:"Poland",iso:"POL",n4:616,conf:"UEFA",p:280000,pop:37654247,r:0.744,inf:1,oil:false,island:false},{c:"Portugal",iso:"PRT",n4:620,conf:"UEFA",p:156000,pop:10247605,r:1.522,inf:1,oil:false,island:false},{c:"Puerto Rico",iso:"PRI",n4:630,conf:"CONCACAF",p:23770,pop:3242212,r:0.733,inf:1,oil:false,island:true},{c:"Qatar",iso:"QAT",n4:634,conf:"AFC",p:25000,pop:2716391,r:0.92,inf:9,oil:true,island:false},{c:"Romania",iso:"ROU",n4:642,conf:"UEFA",p:270000,pop:18982612,r:1.422,inf:7,oil:false,island:false},{c:"Russia",iso:"RUS",n4:643,conf:"UEFA",p:3500000,pop:144444359,r:2.423,inf:1,oil:true,island:false},{c:"Rwanda",iso:"RWA",n4:646,conf:"CAF",p:10900,pop:14094683,r:0.077,inf:19,oil:false,island:false},{c:"Saudi Arabia",iso:"SAU",n4:682,conf:"AFC",p:350000,pop:36947025,r:0.947,inf:9,oil:true,island:false},{c:"Senegal",iso:"SEN",n4:686,conf:"CAF",p:176585,pop:17763163,r:0.994,inf:1,oil:false,island:false},{c:"Serbia",iso:"SRB",n4:688,conf:"UEFA",p:120000,pop:6641197,r:1.807,inf:1,oil:false,island:false},{c:"Seychelles",iso:"SYC",n4:690,conf:"CAF",p:2060,pop:107118,r:1.923,inf:1,oil:false,island:true},{c:"Sierra Leone",iso:"SLE",n4:694,conf:"CAF",p:6480,pop:8792000,r:0.074,inf:1,oil:false,island:false},{c:"Singapore",iso:"SGP",n4:702,conf:"AFC",p:60000,pop:5917412,r:1.014,inf:1,oil:false,island:false},{c:"Slovakia",iso:"SVK",n4:703,conf:"UEFA",p:100000,pop:5460185,r:1.831,inf:1,oil:false,island:false},{c:"Slovenia",iso:"SVN",n4:705,conf:"UEFA",p:52000,pop:2116792,r:2.457,inf:29,oil:false,island:false},{c:"Solomon Islands",iso:"SLB",n4:90,conf:"OFC",p:8800,pop:720000,r:1.222,inf:1,oil:false,island:true},{c:"Somalia",iso:"SOM",n4:706,conf:"CAF",p:26910,pop:18143378,r:0.148,inf:1,oil:false,island:false},{c:"South Africa",iso:"ZAF",n4:710,conf:"CAF",p:1500000,pop:60414495,r:2.483,inf:23,oil:false,island:false},{c:"South Korea",iso:"KOR",n4:410,conf:"AFC",p:600000,pop:51712619,r:1.16,inf:1,oil:false,island:false},{c:"Spain",iso:"ESP",n4:724,conf:"UEFA",p:1056000,pop:47351567,r:2.23,inf:9,oil:false,island:false},{c:"Sudan",iso:"SDN",n4:729,conf:"CAF",p:46300,pop:48109006,r:0.096,inf:1,oil:false,island:false},{c:"Suriname",iso:"SUR",n4:740,conf:"CONCACAF",p:8250,pop:623236,r:1.324,inf:1,oil:false,island:false},{c:"Sweden",iso:"SWE",n4:752,conf:"UEFA",p:1000000,pop:10481937,r:9.54,inf:44,oil:false,island:false},{c:"Switzerland",iso:"CHE",n4:756,conf:"UEFA",p:310000,pop:8776000,r:3.532,inf:151,oil:false,island:false},{c:"Syria",iso:"SYR",n4:760,conf:"AFC",p:34400,pop:21324367,r:0.161,inf:1,oil:false,island:false},{c:"Taiwan",iso:"TWN",n4:158,conf:"AFC",p:12560,pop:23571227,r:0.053,inf:1,oil:false,island:false},{c:"Tajikistan",iso:"TJK",n4:762,conf:"AFC",p:30000,pop:10143543,r:0.296,inf:1,oil:false,island:false},{c:"Tanzania",iso:"TZA",n4:834,conf:"CAF",p:32318,pop:65497748,r:0.049,inf:1,oil:false,island:false},{c:"Thailand",iso:"THA",n4:764,conf:"AFC",p:520000,pop:71668011,r:0.726,inf:1,oil:false,island:false},{c:"Togo",iso:"TGO",n4:768,conf:"CAF",p:9800,pop:8406554,r:0.117,inf:1,oil:false,island:false},{c:"Tonga",iso:"TON",n4:776,conf:"OFC",p:3200,pop:100000,r:3.2,inf:1,oil:false,island:true},{c:"Trinidad and Tobago",iso:"TTO",n4:780,conf:"CONCACAF",p:16350,pop:1534937,r:1.065,inf:1,oil:false,island:false},{c:"Tunisia",iso:"TUN",n4:788,conf:"CAF",p:51629,pop:12048925,r:0.428,inf:1,oil:false,island:false},{c:"Turkey",iso:"TUR",n4:792,conf:"UEFA",p:900000,pop:85372377,r:1.054,inf:1,oil:false,island:false},{c:"Turkmenistan",iso:"TKM",n4:795,conf:"AFC",p:1205,pop:6344700,r:0.019,inf:1,oil:false,island:false},{c:"Uganda",iso:"UGA",n4:800,conf:"CAF",p:500000,pop:48582334,r:1.029,inf:1,oil:false,island:false},{c:"Ukraine",iso:"UKR",n4:804,conf:"UEFA",p:400000,pop:43510000,r:0.919,inf:1,oil:false,island:false},{c:"United Arab Emirates",iso:"ARE",n4:784,conf:"AFC",p:45000,pop:9282410,r:0.485,inf:15,oil:true,island:false},{c:"United Kingdom",iso:"GBR",n4:826,conf:"UEFA",p:8146309,pop:67064048,r:12.147,inf:16,oil:false,island:false},{c:"United States",iso:"USA",n4:840,conf:"CONCACAF",p:4500000,pop:339996563,r:1.324,inf:30,oil:true,island:false},{c:"Uruguay",iso:"URY",n4:858,conf:"CONMEBOL",p:140000,pop:3694000,r:3.79,inf:7,oil:false,island:false},{c:"Uzbekistan",iso:"UZB",n4:860,conf:"AFC",p:180000,pop:36936100,r:0.487,inf:1,oil:false,island:false},{c:"Vanuatu",iso:"VUT",n4:548,conf:"OFC",p:6000,pop:327000,r:1.835,inf:21,oil:false,island:true},{c:"Venezuela",iso:"VEN",n4:862,conf:"CONMEBOL",p:120000,pop:28838499,r:0.416,inf:1,oil:false,island:false},{c:"Vietnam",iso:"VNM",n4:704,conf:"AFC",p:1000000,pop:98858950,r:1.012,inf:1,oil:false,island:false},{c:"Zambia",iso:"ZMB",n4:894,conf:"CAF",p:29211,pop:20569737,r:0.142,inf:1,oil:false,island:false},{c:"Zimbabwe",iso:"ZWE",n4:716,conf:"CAF",p:34600,pop:16665409,r:0.208,inf:1,oil:false,island:false}];
+
+const WC=[{y:1930,h:"Uruguay",t:"trad",f:false},{y:1934,h:"Italy",t:"trad",f:false},{y:1938,h:"France",t:"trad",f:false},{y:1950,h:"Brazil",t:"trad",f:false},{y:1954,h:"Switzerland",t:"trad",f:false},{y:1958,h:"Sweden",t:"trad",f:false},{y:1962,h:"Chile",t:"trad",f:false},{y:1966,h:"England",t:"trad",f:false},{y:1970,h:"Mexico",t:"na",f:false},{y:1974,h:"Germany",t:"trad",f:false},{y:1978,h:"Argentina",t:"trad",f:false},{y:1982,h:"Spain",t:"trad",f:false},{y:1986,h:"Mexico",t:"na",f:false},{y:1990,h:"Italy",t:"trad",f:false},{y:1994,h:"USA",t:"na",f:false},{y:1998,h:"France",t:"trad",f:false},{y:2002,h:"Japan/Korea",t:"other",f:false},{y:2006,h:"Germany",t:"trad",f:false},{y:2010,h:"S.Africa",t:"other",f:false},{y:2014,h:"Brazil",t:"trad",f:false},{y:2018,h:"Russia",t:"oil",f:false},{y:2022,h:"Qatar",t:"oil",f:false},{y:2026,h:"USA/CAN/MEX",t:"na",f:true},{y:2030,h:"ESP/POR/MAR",t:"other",f:true},{y:2034,h:"Saudi Arabia",t:"oil",f:true}];
+
+const CCONF={UEFA:"#3B82F6",AFC:"#10B981",CAF:"#F59E0B",CONCACAF:"#8B5CF6",CONMEBOL:"#EF4444",OFC:"#EC4899"};
+const TCOL={trad:"#10B981",oil:"#EF4444",na:"#F59E0B",other:"#8B5CF6"};
+const by4=Object.fromEntries(D.map(d=>[d.n4,d]));
+let charts={};let tSK="inf",tSD=-1;
+
+document.getElementById("tab-bar").addEventListener("click",e=>{
+  const t=e.target.closest(".tab");if(!t)return;
+  const id=t.dataset.panel;
+  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+  document.querySelectorAll(".panel").forEach(x=>x.classList.remove("active"));
+  t.classList.add("active");
+  document.getElementById("panel-"+id).classList.add("active");
+  if(id==="map")drawMap();
+  if(id==="overview")drawOverview();
+  if(id==="scatter")drawScatter();
+  if(id==="islands")drawIslands();
+  if(id==="oil")drawOil();
+  if(id==="table")renderTable();
+});
+
+function fmt(n){if(!n)return"0";if(n>=1e6)return(n/1e6).toFixed(1)+"M";if(n>=1e3)return(n/1e3).toFixed(0)+"K";return String(n);}
+function mapColor(r){if(r>10)return"#0C447C";if(r>5)return"#378ADD";if(r>2)return"#85B7EB";if(r>0.5)return"#B5D4F4";return"#E6F1FB";}
+
+const COORDS={AFG:[67.7,33.9],ALB:[20.2,41.1],DZA:[3.0,28.0],ASM:[-170.7,-14.3],AND:[1.6,42.5],AGO:[18.5,-11.2],ATG:[-61.8,17.1],ARG:[-64.0,-34.0],ARM:[45.0,40.0],AUS:[133.0,-27.0],AUT:[14.5,47.5],AZE:[47.6,40.1],BHS:[-77.4,25.0],BHR:[50.5,26.0],BGD:[90.4,23.7],BRB:[-59.6,13.2],BLR:[28.0,53.9],BEL:[4.5,50.8],BLZ:[-88.8,17.2],BEN:[2.3,9.3],BTN:[90.4,27.5],BOL:[-64.7,-17.0],BIH:[17.7,44.1],BWA:[24.7,-22.3],BRA:[-51.9,-14.2],BRN:[114.7,4.5],BGR:[25.5,42.7],BFA:[-2.0,12.4],BDI:[29.9,-3.4],KHM:[104.9,12.6],CMR:[12.4,4.0],CAN:[-96.8,60.4],CPV:[-24.0,16.0],TCD:[18.7,15.5],CHL:[-71.5,-35.7],CHN:[104.2,35.9],COL:[-74.3,4.6],COM:[43.9,-11.6],COG:[15.8,-0.2],CRI:[-84.1,9.9],CIV:[-5.5,7.5],HRV:[15.2,45.1],CUB:[-79.5,21.5],CYP:[33.4,35.1],CZE:[15.5,49.8],COD:[24.0,-2.9],DNK:[10.0,56.3],DJI:[42.6,11.8],DOM:[-70.2,18.7],TLS:[125.7,-8.9],ECU:[-78.2,-1.8],EGY:[30.8,26.8],SLV:[-88.9,13.8],GNQ:[10.3,1.7],ERI:[39.8,15.2],EST:[25.0,58.6],SWZ:[31.5,-26.5],ETH:[40.5,9.1],FJI:[178.1,-17.7],FIN:[27.0,64.0],FRA:[2.2,46.2],GAB:[11.8,-0.8],GMB:[-15.3,13.4],GEO:[43.4,42.3],DEU:[10.5,51.2],GHA:[-1.0,8.0],GRC:[22.0,39.1],GRD:[-61.7,12.1],GTM:[-90.2,15.8],GIN:[-11.8,11.0],GNB:[-15.2,12.0],GUY:[-59.0,5.0],HTI:[-72.3,18.9],HND:[-86.6,15.2],HUN:[19.5,47.2],ISL:[-18.5,65.0],IND:[78.9,20.6],IDN:[113.9,-0.8],IRN:[53.7,32.4],IRQ:[43.7,33.2],IRL:[-8.2,53.4],ISR:[34.9,31.5],ITA:[12.6,42.5],JAM:[-77.3,18.1],JPN:[138.3,36.2],JOR:[36.2,30.6],KAZ:[67.0,48.0],KEN:[37.9,0.0],KWT:[47.6,29.3],LAO:[103.0,18.0],LVA:[25.0,57.0],LBN:[35.6,33.9],LSO:[28.2,-29.6],LBR:[-9.4,6.4],LBY:[17.2,26.3],LIE:[9.6,47.1],LTU:[24.0,56.0],LUX:[6.1,49.8],MDG:[46.9,-18.8],MWI:[34.3,-13.3],MYS:[109.7,4.2],MDV:[73.2,3.2],MLI:[-2.0,17.6],MLT:[14.5,35.9],MRT:[-10.9,20.3],MUS:[57.6,-20.3],MEX:[-102.6,23.6],MDA:[28.4,47.0],MNG:[103.8,46.9],MNE:[19.4,42.7],MAR:[-5.8,31.8],MOZ:[35.5,-18.7],MMR:[96.0,17.0],NAM:[18.5,-22.0],NPL:[84.1,28.4],NLD:[5.3,52.1],NZL:[172.5,-41.3],NIC:[-85.2,13.0],NER:[8.1,16.1],NGA:[8.7,9.1],PRK:[127.5,40.3],MKD:[21.7,41.6],NOR:[8.5,61.0],OMN:[57.6,21.5],PAK:[69.3,30.4],PSE:[35.2,31.9],PAN:[-80.8,8.5],PNG:[143.9,-6.3],PRY:[-58.4,-23.4],PER:[-75.0,-9.2],PHL:[122.0,12.9],POL:[19.1,51.9],PRT:[-8.2,39.5],PRI:[-66.6,18.2],QAT:[51.2,25.3],ROU:[24.9,45.9],RUS:[105.3,61.5],RWA:[29.9,-1.9],SAU:[45.1,23.9],SEN:[-14.5,14.5],SRB:[21.0,44.0],SYC:[55.5,-4.7],SLE:[-11.8,8.6],SGP:[103.8,1.3],SVK:[19.7,48.7],SVN:[15.0,46.1],SLB:[160.2,-9.6],SOM:[46.2,6.1],ZAF:[25.1,-29.0],KOR:[127.8,35.9],ESP:[-3.7,40.4],SDN:[30.2,15.6],SUR:[-56.0,4.0],SWE:[15.6,62.2],CHE:[8.2,47.0],SYR:[38.0,34.8],TWN:[121.0,23.7],TJK:[71.0,38.9],TZA:[35.0,-6.3],THA:[100.9,15.9],TGO:[1.1,8.6],TON:[-175.2,-21.2],TTO:[-61.2,10.7],TUN:[9.5,34.0],TUR:[35.2,38.9],TKM:[59.5,40.0],UGA:[32.3,1.4],UKR:[31.2,48.4],ARE:[53.8,23.4],GBR:[-3.4,55.4],USA:[-95.7,37.1],URY:[-56.0,-32.5],UZB:[63.9,41.4],VUT:[166.9,-15.4],VEN:[-66.6,6.4],VNM:[108.3,14.1],ZMB:[27.9,-13.1],ZWE:[29.2,-20.0]};
+
+let mapDrawn=false;
+function drawMap(){
+  if(mapDrawn)return;mapDrawn=true;
+  const tip=document.getElementById("tip");
+  d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json").then(world=>{
+    const svg=d3.select("#map-container").append("svg").attr("viewBox","0 0 900 460").attr("width","100%").attr("preserveAspectRatio","xMidYMid meet");
+    const proj=d3.geoNaturalEarth1().scale(148).translate([450,240]);
+    const path=d3.geoPath(proj);
+    const countries=topojson.feature(world,world.objects.countries);
+    svg.selectAll("path").data(countries.features).join("path")
+      .attr("d",path).attr("stroke","#fff").attr("stroke-width","0.4")
+      .attr("fill",d=>{const row=by4[+d.id];return row?mapColor(row.r):"#E5E7EB";})
+      .on("mousemove",(ev,d)=>{
+        const row=by4[+d.id];if(!row)return;
+        tip.style.display="block";tip.style.left=(ev.clientX+12)+"px";tip.style.top=(ev.clientY-44)+"px";
+        tip.innerHTML="<strong>"+row.c+"</strong>Players: "+fmt(row.p)+"<br>Per 1,000: "+row.r.toFixed(2)+"<br>Influence: "+row.inf+"<br>Conf.: "+row.conf+(row.oil?" &middot; Oil state":"")+(row.island?" &middot; Island state":"");
+      }).on("mouseleave",()=>tip.style.display="none");
+    svg.selectAll("circle.oil").data(D.filter(d=>d.oil)).join("circle")
+      .attr("class","oil").attr("r",4).attr("fill","#EF4444").attr("opacity",0.8)
+      .attr("transform",d=>{const c=COORDS[d.iso];const xy=c?proj(c):null;return xy?"translate("+xy+")":"translate(-999,-999)";})
+      .on("mousemove",(ev,d)=>{tip.style.display="block";tip.style.left=(ev.clientX+12)+"px";tip.style.top=(ev.clientY-44)+"px";tip.innerHTML="<strong>"+d.c+"</strong>Oil state<br>Players: "+fmt(d.p)+"<br>Influence: "+d.inf;}).on("mouseleave",()=>tip.style.display="none");
+    svg.selectAll("circle.isl").data(D.filter(d=>d.island)).join("circle")
+      .attr("class","isl").attr("r",3.5).attr("fill","#F59E0B").attr("opacity",0.85)
+      .attr("transform",d=>{const c=COORDS[d.iso];const xy=c?proj(c):null;return xy?"translate("+xy+")":"translate(-999,-999)";})
+      .on("mousemove",(ev,d)=>{tip.style.display="block";tip.style.left=(ev.clientX+12)+"px";tip.style.top=(ev.clientY-44)+"px";tip.innerHTML="<strong>"+d.c+"</strong>Island state<br>Players: "+fmt(d.p)+"<br>Influence: "+d.inf;}).on("mouseleave",()=>tip.style.display="none");
+  });
+}
+
+function mapSearch(){
+  const q=document.getElementById("map-search").value.toLowerCase().trim();
+  const res=document.getElementById("map-result");
+  if(!q){res.style.display="none";return;}
+  const m=D.find(d=>d.c.toLowerCase().includes(q));
+  if(!m){res.style.display="block";res.innerHTML="<div class='cn'>No match for &#8220;"+q+"&#8221;</div>";return;}
+  const type=m.oil?"Oil state":m.island?"Island state":"Standard member";
+  res.style.display="block";
+  res.innerHTML="<div class='cn'>"+m.c+"</div><div class='row'><div class='item'><div class='k'>Confederation</div><div class='v'>"+m.conf+"</div></div><div class='item'><div class='k'>Registered players</div><div class='v'>"+m.p.toLocaleString()+"</div></div><div class='item'><div class='k'>Players per 1,000</div><div class='v'>"+m.r.toFixed(2)+"</div></div><div class='item'><div class='k'>Influence score</div><div class='v'>"+m.inf+"</div></div><div class='item'><div class='k'>Population</div><div class='v'>"+fmt(m.pop)+"</div></div><div class='item'><div class='k'>Type</div><div class='v'>"+type+"</div></div></div>";
+}
+
+function drawOverview(){
+  const confs=["UEFA","AFC","CAF","CONCACAF","CONMEBOL","OFC"];
+  const pl={},ct={};confs.forEach(c=>{pl[c]=0;ct[c]=0;});
+  D.forEach(d=>{if(pl[d.conf]!==undefined){pl[d.conf]+=d.p;ct[d.conf]++;}});
+  document.getElementById("m-top").innerHTML="<div class='metric'><div class='lbl'>Member associations</div><div class='val'>193</div><div class='sub2'>6 confederations</div></div><div class='metric'><div class='lbl'>Total registered players</div><div class='val'>"+fmt(D.reduce((s,d)=>s+d.p,0))+"</div><div class='sub2'>globally</div></div><div class='metric'><div class='lbl'>Oil states</div><div class='val'>"+D.filter(d=>d.oil).length+"</div><div class='sub2'>of 193</div></div><div class='metric'><div class='lbl'>Island states</div><div class='val'>"+D.filter(d=>d.island).length+"</div><div class='sub2'>of 193</div></div>";
+  document.getElementById("leg-conf").innerHTML=confs.map(c=>"<span class='leg-item'><span class='sq' style='background:"+CCONF[c]+"'></span>"+c+" ("+ct[c]+")</span>").join("");
+  if(charts.conf)charts.conf.destroy();
+  charts.conf=new Chart(document.getElementById("ch-conf"),{type:"bar",data:{labels:confs,datasets:[{label:"Players",data:confs.map(c=>pl[c]),backgroundColor:confs.map(c=>CCONF[c]),borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>" "+fmt(ctx.raw)}}},scales:{y:{ticks:{callback:v=>fmt(v)},grid:{color:"rgba(0,0,0,.06)"}},x:{grid:{display:false}}}}});
+  const t25=D.filter(d=>d.inf>1).sort((a,b)=>b.inf-a.inf).slice(0,25);
+  if(charts.inf)charts.inf.destroy();
+  charts.inf=new Chart(document.getElementById("ch-inf"),{type:"bar",data:{labels:t25.map(d=>d.c.length>13?d.c.slice(0,11)+"...":d.c),datasets:[{label:"Influence",data:t25.map(d=>d.inf),backgroundColor:t25.map(d=>d.oil?"#EF4444":d.island?"#3B82F6":"#6366F1"),borderWidth:0}]},options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>" Score: "+ctx.raw}}},scales:{x:{grid:{color:"rgba(0,0,0,.06)"}},y:{ticks:{font:{size:10}},grid:{display:false}}}}});
+}
+
+function drawScatter(){
+  const xk=document.getElementById("xaxis").value;
+  const fi=document.getElementById("scf").value;
+  let d=D;
+  if(fi==="oil")d=d.filter(x=>x.oil);
+  if(fi==="island")d=d.filter(x=>x.island);
+  if(fi==="high")d=d.filter(x=>x.inf>=5);
+  const xl={p:"Registered players",pop:"Population",r:"Players per 1,000"}[xk];
+  const pts=d.map(x=>({x:x[xk],y:x.inf,label:x.c,color:x.oil?"#EF4444":x.island?"#3B82F6":x.inf>=5?"#10B981":"#D1D5DB"}));
+  const tip=document.getElementById("tip");
+  if(charts.sc)charts.sc.destroy();
+  charts.sc=new Chart(document.getElementById("ch-sc"),{type:"scatter",data:{datasets:[{data:pts,backgroundColor:pts.map(p=>p.color),pointRadius:pts.map(p=>p.color==="#D1D5DB"?3:5),pointHoverRadius:7,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:20},plugins:{legend:{display:false},tooltip:{enabled:false,external:ctx=>{const t=ctx.tooltip;if(t.opacity===0){tip.style.display="none";return;}const item=pts[t.dataPoints[0].dataIndex];tip.style.display="block";tip.style.left=(t.caretX+10)+"px";tip.style.top=(t.caretY-44)+"px";tip.innerHTML="<strong>"+item.label+"</strong>"+xl+": "+fmt(item.x)+"<br>Influence: "+item.y;}}},scales:{x:{type:"linear",ticks:{callback:v=>fmt(v)},grid:{color:"rgba(0,0,0,.06)"},title:{display:true,text:xl,font:{size:11}}},y:{title:{display:true,text:"Influence score",font:{size:11}},grid:{color:"rgba(0,0,0,.06)"},min:0}}}});
+}
+
+function drawIslands(){
+  const isl=D.filter(d=>d.island).sort((a,b)=>b.inf-a.inf);
+  const totI=D.reduce((s,d)=>s+d.inf,0),islI=isl.reduce((s,d)=>s+d.inf,0);
+  document.getElementById("m-isl").innerHTML="<div class='metric'><div class='lbl'>Island states</div><div class='val'>"+isl.length+"</div><div class='sub2'>"+Math.round(isl.length/D.length*100)+"% of 193</div></div><div class='metric'><div class='lbl'>Share of influence</div><div class='val'>"+Math.round(islI/totI*100)+"%</div><div class='sub2'>of total score</div></div><div class='metric'><div class='lbl'>Total players</div><div class='val'>"+fmt(isl.reduce((s,d)=>s+d.p,0))+"</div><div class='sub2'>island states</div></div><div class='metric'><div class='lbl'>Avg. influence</div><div class='val'>"+(islI/isl.length).toFixed(1)+"</div><div class='sub2'>vs. 6.0 overall</div></div>";
+  if(charts.isl)charts.isl.destroy();
+  charts.isl=new Chart(document.getElementById("ch-isl"),{type:"bubble",data:{datasets:[{label:"Island states",data:isl.map(d=>({x:d.p,y:d.inf,r:Math.max(4,Math.sqrt(d.pop/1e4)*1.5),label:d.c})),backgroundColor:isl.map(d=>(CCONF[d.conf]||"#888")+"99"),borderWidth:1,borderColor:isl.map(d=>CCONF[d.conf]||"#888")}]},options:{responsive:true,maintainAspectRatio:false,layout:{padding:20},plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>{const d=isl[ctx.dataIndex];return[d.c,"Players: "+fmt(d.p),"Influence: "+d.inf,"Conf.: "+d.conf];}}}},scales:{x:{type:"linear",ticks:{callback:v=>fmt(v)},title:{display:true,text:"Registered players",font:{size:11}},grid:{color:"rgba(0,0,0,.06)"},min:0},y:{min:0,title:{display:true,text:"Influence score",font:{size:11}},grid:{color:"rgba(0,0,0,.06)"}}}}});
+  const cc={};isl.forEach(d=>{cc[d.conf]=(cc[d.conf]||0)+1;});
+  const ck=Object.keys(cc);
+  if(charts.islc)charts.islc.destroy();
+  charts.islc=new Chart(document.getElementById("ch-isl-conf"),{type:"doughnut",data:{labels:ck,datasets:[{data:ck.map(k=>cc[k]),backgroundColor:ck.map(k=>CCONF[k]||"#888"),borderWidth:2,borderColor:"#fff"}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"right",labels:{font:{size:11},padding:8}},tooltip:{callbacks:{label:ctx=>ctx.label+": "+ctx.raw+" countries"}}}}});
+}
+
+function drawOil(){
+  const oil=D.filter(d=>d.oil).sort((a,b)=>b.inf-a.inf);
+  const oilI=oil.reduce((s,d)=>s+d.inf,0),totI=D.reduce((s,d)=>s+d.inf,0);
+  document.getElementById("m-oil").innerHTML="<div class='metric'><div class='lbl'>Oil states</div><div class='val'>19</div><div class='sub2'>of 193 nations</div></div><div class='metric'><div class='lbl'>Share of influence</div><div class='val'>"+Math.round(oilI/totI*100)+"%</div><div class='sub2'>of total score</div></div><div class='metric'><div class='lbl'>World Cups hosted</div><div class='val'>"+WC.filter(w=>w.t==="oil").length+"</div><div class='sub2'>incl. future (2034)</div></div><div class='metric'><div class='lbl'>Future World Cups</div><div class='val'>2</div><div class='sub2'>2026 (co-host) + 2034</div></div>";
+  document.getElementById("wc-tl").innerHTML=WC.map(w=>{const col=TCOL[w.t];const sh=w.h.length>8?w.h.slice(0,7)+"...":w.h;return"<div style='flex:1;min-width:36px;text-align:center;padding:4px 2px'><div style='font-size:9px;font-weight:500;color:#555'>"+w.y+"</div><div style='height:20px;border-radius:3px;margin:2px auto;width:34px;background:"+(w.f?"transparent":col)+";border:"+(w.f?"1.5px dashed "+col:"none")+"'></div><div style='font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:42px;margin:0 auto;color:"+col+"'>"+sh+"</div></div>";}).join("");
+  if(charts.oil)charts.oil.destroy();
+  charts.oil=new Chart(document.getElementById("ch-oil"),{type:"bar",data:{labels:oil.map(d=>d.c.length>13?d.c.slice(0,11)+"...":d.c),datasets:[{label:"Influence score",data:oil.map(d=>d.inf),backgroundColor:"#EF444480",borderColor:"#EF4444",borderWidth:1,yAxisID:"y"},{label:"Players per 1,000",data:oil.map(d=>d.r),backgroundColor:"#3B82F680",borderColor:"#3B82F6",borderWidth:1,yAxisID:"y2"}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"top",labels:{font:{size:11},padding:12,usePointStyle:true}}},scales:{x:{grid:{display:false},ticks:{font:{size:10},autoSkip:false,maxRotation:30}},y:{title:{display:true,text:"Influence",font:{size:10}},grid:{color:"rgba(0,0,0,.06)"}},y2:{position:"right",title:{display:true,text:"Players/1,000",font:{size:10}},grid:{display:false}}}}});
+}
+
+function srt(k){if(tSK===k)tSD*=-1;else{tSK=k;tSD=-1;}renderTable();}
+function renderTable(){
+  const q=(document.getElementById("tsearch").value||"").toLowerCase();
+  const cf=document.getElementById("tcf").value;
+  const tf=document.getElementById("ttf").value;
+  let d=D.filter(x=>{
+    if(q&&!x.c.toLowerCase().includes(q))return false;
+    if(cf&&x.conf!==cf)return false;
+    if(tf==="oil"&&!x.oil)return false;
+    if(tf==="island"&&!x.island)return false;
+    if(tf==="high"&&x.inf<5)return false;
+    return true;
+  });
+  d.sort((a,b)=>{const v=typeof a[tSK]==="string"?a[tSK].localeCompare(b[tSK]):(a[tSK]-b[tSK]);return v*tSD;});
+  document.getElementById("tcount").textContent=d.length+" countries shown";
+  document.getElementById("tbody").innerHTML=d.map(x=>"<tr><td title='"+x.c+"'>"+x.c+"</td><td><span style='color:"+CCONF[x.conf]+";font-weight:500'>"+x.conf+"</span></td><td style='text-align:right'>"+fmt(x.p)+"</td><td style='text-align:right'>"+x.r.toFixed(1)+"</td><td style='text-align:right;font-weight:"+(x.inf>10?"500":"400")+"'>"+x.inf+"</td><td>"+(x.oil?"<span class='badge b-oil'>Oil</span>":x.island?"<span class='badge b-isl'>Island</span>":"<span class='badge b-std'>Standard</span>")+"</td></tr>").join("");
+}
+
+drawMap();
+</script>
+</body>
+</html>
